@@ -1,6 +1,7 @@
 import os
 import paramiko
-import dns.resolver
+# import dns.resolver
+import socket
 
 daemon_mode = False
 current_dir = os.getcwd()
@@ -28,11 +29,13 @@ def disconnect():
     ssh.close()
 
 def resolve_dns():
-    myRes = dns.resolver.Resolver()
-    myRes.nameservers = ["224.0.0.251"] #mdns multicast address
-    myRes.port = 5353 #mdns port
-    response = myRes.resolve(roborio_mdns,"A")
-    print(response)
+    try:
+        response = socket.gethostbyname(roborio_mdns)
+    except socket.gaierror as e:
+        response = fallback_roborio_ip
+
+    return response
 
 if (__name__ == "__main__"):
-    check_logs_dir() 
+    check_logs_dir()
+    
