@@ -1,17 +1,28 @@
 import os
 import paramiko
 import socket
+import argparse
+
+parser: argparse.ArgumentParser = argparse.ArgumentParser(
+                    prog='Roborio log puller',
+                    description='Helps to automate pulling logs and parsing them',
+                    epilog='Bottom text')
 
 daemon_mode: bool = False
-current_dir: str = os.getcwd()
 ssh_default_user: str = "lvuser"
 ssh_admin_user: str = "admin"
-use_admin: bool = False
+ssh_user: str = ssh_default_user
 
 team_number: int = 112
 fallback_roborio_ip: str = "10.1.12.2"
 log_dir: str = "match_logs" # in cwd
-roborio_mdns: str = f"roboRIO-{team_number}-frc.local"
+roborio_hostname: str = f"roboRIO-{team_number}-frc.local"
+
+def fetch_arguments() -> argparse.Namespace:
+    parser.add_argument("-d", "--daemon", help="Enable daemon mode", action='store_true')
+    parser.add_argument("-a", "--admin", help="Use admin account instead of lvuser during ssh", action='store_true')
+    parser.add_argument("-l", "--log-dir", help="Use specified log directory", type=str, default=log_dir)
+    return parser.parse_args()
 
 def check_logs_dir() -> None:
     os.makedirs(log_dir, exist_ok=True)
@@ -32,21 +43,23 @@ def ssh_disconnect(ssh_client: paramiko.SSHClient) -> None:
 
 def resolve_roborio() -> str:
     try:
-        response = socket.gethostbyname(roborio_mdns)
+        response = socket.gethostbyname(roborio_hostname)
     except socket.gaierror:
         response = fallback_roborio_ip
 
     return response
 
 if (__name__ == "__main__"):
+    args = fetch_arguments()
+
+    daemon_mode = args.daemon
+    ssh_user = ssh_admin_user if args.admin else ssh_default_user
+    log_dir = args.log_dir
+
     check_logs_dir()
     addr = resolve_roborio()
-    user: str = ssh_default_user
 
-    if use_admin:
-        user = ssh_admin_user
-
-    ssh_client = ssh_connect(addr, user, "")
+    ssh_client = ssh_connect(addr, ssh_user, "")
 
     # future logic
 
