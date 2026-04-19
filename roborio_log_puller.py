@@ -1,6 +1,5 @@
 import os
 import paramiko
-# import dns.resolver
 import socket
 
 daemon_mode = False
