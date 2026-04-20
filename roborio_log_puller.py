@@ -63,7 +63,7 @@ def resolve_roborio() -> str:
 
     return response
 
-if (__name__ == "__main__"):
+if __name__ == "__main__":
     args = fetch_arguments()
 
     daemon_mode = args.daemon
