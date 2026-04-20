@@ -2,7 +2,7 @@ import os
 import paramiko
 import socket
 import argparse
-import stat
+# import stat
 
 parser: argparse.ArgumentParser = argparse.ArgumentParser(
                     prog='Roborio log puller',
@@ -73,7 +73,7 @@ def sftp_connect(ssh_client: paramiko.SSHClient) -> paramiko.SFTPClient:
 def sftp_dir_exists(sftp_client: paramiko.SFTPClient, path: str) -> bool:
     try:
         sftp_client.stat(path=path)
-    except Exception as e:
+    except Exception:
         return False
     else:
         return True
