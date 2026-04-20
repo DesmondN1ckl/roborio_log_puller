@@ -2,7 +2,7 @@ import os
 import paramiko
 import socket
 import argparse
-# import time
+import stat
 
 parser: argparse.ArgumentParser = argparse.ArgumentParser(
                     prog='Roborio log puller',
@@ -28,6 +28,15 @@ def fetch_arguments() -> argparse.Namespace:
 def check_logs_dir() -> None:
     os.makedirs(log_dir, exist_ok=True)
 
+def resolve_roborio() -> str:
+    try:
+        response = socket.gethostbyname(roborio_hostname)
+    except socket.gaierror:
+        response = fallback_roborio_ip
+
+    return response
+
+
 def ssh_connect(address: str, username: str, password: str) -> paramiko.SSHClient:
     ssh_client: paramiko.SSHClient = paramiko.SSHClient()
     ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
@@ -44,24 +53,30 @@ def ssh_connect(address: str, username: str, password: str) -> paramiko.SSHClien
 
     return ssh_client
 
-def ssh_run_command(ssh_client: paramiko.SSHClient, cmd: str) -> tuple[str, str, int]:
-    ssh_stdin, ssh_stdout, ssh_stderr = ssh_client.exec_command(cmd)
+def ssh_exec(ssh_client: paramiko.SSHClient, cmd: str) -> tuple[str, str, int]:
+    _, ssh_stdout, ssh_stderr = ssh_start_cmd(ssh_client=ssh_client, cmd=cmd)
     out = ssh_stdout.read().decode()
     err = ssh_stderr.read().decode()
     exit_code = ssh_stdout.channel.recv_exit_status()
 
     return (out, err, exit_code)
 
+def ssh_start_cmd(ssh_client: paramiko.SSHClient, cmd: str) -> tuple[paramiko.ChannelFile, paramiko.ChannelFile, paramiko.ChannelFile]:
+    return ssh_client.exec_command(cmd) # (in, out, err)
+
 def ssh_disconnect(ssh_client: paramiko.SSHClient) -> None:
     ssh_client.close()
 
-def resolve_roborio() -> str:
-    try:
-        response = socket.gethostbyname(roborio_hostname)
-    except socket.gaierror:
-        response = fallback_roborio_ip
+def sftp_connect(ssh_client: paramiko.SSHClient) -> paramiko.SFTPClient:
+    return ssh_client.open_sftp()
 
-    return response
+def sftp_dir_exists(sftp_client: paramiko.SFTPClient, path: str) -> bool:
+    try:
+        sftp_client.stat(path=path)
+    except Exception as e:
+        return False
+    else:
+        return True
 
 if __name__ == "__main__":
     args = fetch_arguments()
@@ -73,8 +88,10 @@ if __name__ == "__main__":
     check_logs_dir()
     addr = resolve_roborio()
 
-    ssh_client = ssh_connect(addr, ssh_user, "")
+    ssh_client = ssh_connect(address=addr, username=ssh_user, password="")
+    sftp_client = sftp_connect(ssh_client=ssh_client)
 
-    # future logic
+    
 
+    # Disconnect
     ssh_disconnect(ssh_client)
