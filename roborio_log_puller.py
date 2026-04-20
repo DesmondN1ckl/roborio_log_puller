@@ -2,6 +2,7 @@ import os
 import paramiko
 import socket
 import argparse
+# import time
 
 parser: argparse.ArgumentParser = argparse.ArgumentParser(
                     prog='Roborio log puller',
@@ -29,7 +30,15 @@ def check_logs_dir() -> None:
 
 def ssh_connect(address: str, username: str, password: str) -> paramiko.SSHClient:
     ssh_client: paramiko.SSHClient = paramiko.SSHClient()
-    ssh_client.connect(address, username=username, password=password, timeout=3)
+    ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+
+    ssh_client.connect(address,
+        username=username,
+        password=password,
+        timeout=3,
+        look_for_keys=False,
+        allow_agent=False)
+
     return ssh_client
 
 def ssh_run_command(ssh_client: paramiko.SSHClient, cmd: str) -> str:
