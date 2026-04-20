@@ -36,16 +36,21 @@ def ssh_connect(address: str, username: str, password: str) -> paramiko.SSHClien
         username=username,
         password=password,
         timeout=3,
+        banner_timeout=3,
+        auth_timeout=3,
+        channel_timeout=3,
         look_for_keys=False,
         allow_agent=False)
 
     return ssh_client
 
-def ssh_run_command(ssh_client: paramiko.SSHClient, cmd: str) -> str:
+def ssh_run_command(ssh_client: paramiko.SSHClient, cmd: str) -> tuple[str, str, int]:
     ssh_stdin, ssh_stdout, ssh_stderr = ssh_client.exec_command(cmd)
-    output = ssh_stdout.read().decode() # wait for command to return
+    out = ssh_stdout.read().decode()
+    err = ssh_stderr.read().decode()
+    exit_code = ssh_stdout.channel.recv_exit_status()
 
-    return output
+    return (out, err, exit_code)
 
 def ssh_disconnect(ssh_client: paramiko.SSHClient) -> None:
     ssh_client.close()
