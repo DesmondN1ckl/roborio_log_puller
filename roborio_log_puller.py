@@ -82,7 +82,7 @@ def sftp_connect(ssh_client: paramiko.SSHClient) -> paramiko.SFTPClient:
 def sftp_path_exists(sftp_client: paramiko.SFTPClient, path: str) -> bool:
     try:
         sftp_client.stat(path=path) # doesn't use return, parses errors instead
-    except IOError as e:
+    except OSError as e:
         if e.errno in (errno.ENOENT, errno.ENOTDIR):
             return False
         raise
@@ -100,6 +100,19 @@ def sftp_find_log_dir(sftp_client: paramiko.SFTPClient) -> set[str]:
             valid_dirs.add(path)
 
     return valid_dirs
+
+def sftp_grab_latest_logs(sftp_client: paramiko.SFTPClient, dirs: list[str]) -> list[str]:
+    logs: list[str] = list()
+    
+    for dir in dirs:
+        try:
+            files = sftp_client.listdir(dir)
+            logs.extend(files)
+        except OSError:
+            pass
+
+    return list(set(logs)).sort()
+
 
 if __name__ == "__main__":
     # Set up vars
