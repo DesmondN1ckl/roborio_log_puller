@@ -20,7 +20,6 @@ team_number: int = 112
 fallback_roborio_ip: str = "10.1.12.2"
 roborio_hostname: str = f"roboRIO-{team_number}-frc.local"
 
-local_log_dir: str = "match_logs" # in cwd
 remote_default_log_dir: str = "/home/lvuser/logs"
 remote_usb_log_dirs: tuple[str, str] = ("/run/media/lvuser/logs", "/u/logs")
 
