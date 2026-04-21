@@ -1,11 +1,11 @@
-import os
-import socket
-import errno
 import argparse
+import errno
+import os
+
 # import stat
+import socket
 
 import paramiko
-from paramiko import sftp
 
 parser: argparse.ArgumentParser = argparse.ArgumentParser(
                     prog='Roborio log puller',
@@ -20,18 +20,19 @@ team_number: int = 112
 fallback_roborio_ip: str = "10.1.12.2"
 roborio_hostname: str = f"roboRIO-{team_number}-frc.local"
 
+local_default_log_dir = "match_logs"
 remote_default_log_dir: str = "/home/lvuser/logs"
-remote_usb_log_dirs: tuple[str, str] = ("/run/media/lvuser/logs", "/u/logs")
+remote_default_usb_log_dirs: tuple[str, str] = ("/run/media/lvuser/logs", "/u/logs")
 
 
 def fetch_arguments() -> argparse.Namespace:
     parser.add_argument("-d", "--daemon", help="Enable daemon mode", action='store_true')
     parser.add_argument("-a", "--admin", help="Use admin account instead of lvuser during ssh", action='store_true')
-    parser.add_argument("-l", "--log-dir", help="Use specified log directory to check for and store downloaded logs", type=str, default=local_log_dir)
+    parser.add_argument("-l", "--log-dir", help="Use specified log directory to check for and store downloaded logs", type=str, default=local_default_log_dir)
     return parser.parse_args()
 
-def check_logs_dir() -> None:
-    os.makedirs(local_log_dir, exist_ok=True)
+def check_logs_dir(path: str = local_default_log_dir) -> None:
+    os.makedirs(path, exist_ok=True)
 
 def resolve_roborio() -> str:
     try:
@@ -94,7 +95,7 @@ def sftp_find_log_dir(sftp_client: paramiko.SFTPClient) -> set[str]:
     if sftp_path_exists(sftp_client=sftp_client, path=remote_default_log_dir):
         valid_dirs.add(remote_default_log_dir)
 
-    for path in remote_usb_log_dirs:
+    for path in remote_default_usb_log_dirs:
         if sftp_path_exists(sftp_client=sftp_client, path=path):
             valid_dirs.add(path)
 
@@ -108,18 +109,16 @@ if __name__ == "__main__":
     ssh_user = ssh_admin_user if args.admin else ssh_default_user
     local_log_dir = args.log_dir
 
-    check_logs_dir()
+    check_logs_dir(local_log_dir)
     addr = resolve_roborio()
 
     # Connect over ssh then open sftp
     ssh_client = ssh_connect(address=addr, username=ssh_user, password="")
     sftp_client = sftp_connect(ssh_client=ssh_client)
 
-    remote_log_dir: set[str] = sftp_find_log_dir(sftp_client=sftp_client)
+    remote_log_dirs: set[str] = sftp_find_log_dir(sftp_client=sftp_client)
 
-
-
-
+    
 
     # Disconnect
     sftp_client.close()
