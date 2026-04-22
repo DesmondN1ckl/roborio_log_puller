@@ -21,7 +21,7 @@ fallback_roborio_ip: str = "10.1.12.2"
 roborio_hostname: str = f"roboRIO-{team_number}-frc.local"
 
 local_default_log_dir = "match_logs"
-remote_default_log_dir: str = "/home/lvuser/logs"
+remote_default_log_dir: str = "/home/lvuser/logs" 
 remote_default_usb_log_dirs: tuple[str, str] = ("/run/media/lvuser/logs", "/u/logs")
 
 
@@ -117,9 +117,16 @@ def sftp_grab_latest_logs(sftp_client: paramiko.SFTPClient, dirs: list[str]) -> 
     logs: list[str] = list()
     
     for dir in dirs:
-        logs.extend(sftp_listdir(sftp_client=sftp_client, dir=dir))
 
-    return sorted(list(set(logs)))
+        if len(dir) > 1:
+            dir = str(dir.rsplit("/"))
+
+        files: list[str] = sftp_listdir(sftp_client=sftp_client, dir=dir)
+        for file in files:
+            if file.endswith(".wpilog"):
+                logs.append(dir + "/" + file)
+
+    return sorted(logs, reverse=True) # FRC logs are lexigraphically sortable (I'm pretty sure)
 
 
 if __name__ == "__main__":
@@ -137,9 +144,16 @@ if __name__ == "__main__":
     ssh_client = ssh_connect(address=addr, username=ssh_user, password="")
     sftp_client = sftp_connect(ssh_client=ssh_client)
 
+    # Find log files
     remote_log_dirs: list[str] = sftp_find_log_dir(sftp_client=sftp_client)
+    print(remote_log_dirs) # Debug
+
     remote_logs: list[str] = sftp_grab_latest_logs(sftp_client=sftp_client, dirs=remote_log_dirs)
+    print(remote_logs) # Debug
     
+    for file in remote_logs:
+        pass # Future logic
+
 
 
     # Disconnect
