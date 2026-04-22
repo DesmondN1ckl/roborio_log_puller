@@ -137,8 +137,7 @@ if __name__ == "__main__":
     addr = resolve_roborio()
 
     # Connect over ssh then open sftp
-    ssh_client = ssh_connect(address="127.0.0.1", username="lvuser", password="secur3passwd")
-    #ssh_client = ssh_connect(address=addr, username=ssh_user, password="")
+    ssh_client = ssh_connect(address=addr, username=ssh_user, password="")
     sftp_client = sftp_connect(ssh_client=ssh_client)
 
     remote_log_dirs: set[str] = sftp_find_log_dir(sftp_client=sftp_client)
