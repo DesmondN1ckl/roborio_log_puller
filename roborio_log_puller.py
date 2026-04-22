@@ -73,9 +73,6 @@ def ssh_exec(ssh_client: paramiko.SSHClient, cmd: str, use_sudo: bool = False) -
 def ssh_start_cmd(ssh_client: paramiko.SSHClient, cmd: str) -> tuple[paramiko.ChannelFile, paramiko.ChannelFile, paramiko.ChannelFile]:
     return ssh_client.exec_command(cmd) # (in, out, err)
 
-def ssh_disconnect(ssh_client: paramiko.SSHClient) -> None:
-    ssh_client.close()
-
 def sftp_connect(ssh_client: paramiko.SSHClient) -> paramiko.SFTPClient:
     return ssh_client.open_sftp()
 
@@ -111,7 +108,10 @@ def sftp_grab_latest_logs(sftp_client: paramiko.SFTPClient, dirs: list[str]) -> 
         except OSError:
             pass
 
-    return list(set(logs)).sort()
+    logs = list(set(logs))
+    logs.sort()
+    
+    return logs
 
 
 if __name__ == "__main__":
@@ -135,4 +135,4 @@ if __name__ == "__main__":
 
     # Disconnect
     sftp_client.close()
-    ssh_disconnect(ssh_client)
+    ssh_client.close()
