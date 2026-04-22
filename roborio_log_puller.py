@@ -4,6 +4,7 @@ import os
 
 # import stat
 import socket
+import pathlib
 
 import paramiko
 
@@ -20,6 +21,7 @@ team_number: int = 112
 fallback_roborio_ip: str = "10.1.12.2"
 roborio_hostname: str = f"roboRIO-{team_number}-frc.local"
 
+script_dir = pathlib.PurePosixPath(__file__).parent
 local_default_log_dir = "match_logs"
 remote_default_log_dir: str = "/home/lvuser/logs" 
 remote_default_usb_log_dirs: tuple[str, str] = ("/run/media/lvuser/logs", "/u/logs")
@@ -135,7 +137,7 @@ if __name__ == "__main__":
 
     daemon_mode = args.daemon
     ssh_user = ssh_admin_user if args.admin else ssh_default_user
-    local_log_dir = args.log_dir
+    local_log_dir: pathlib.PurePosixPath = script_dir / args.log_dir
 
     check_logs_dir(local_log_dir)
     addr = resolve_roborio()
@@ -150,9 +152,16 @@ if __name__ == "__main__":
 
     remote_logs: list[str] = sftp_grab_latest_logs(sftp_client=sftp_client, dirs=remote_log_dirs)
     print(remote_logs) # Debug
-    
-    for file in remote_logs:
-        pass # Future logic
+
+
+    if len(remote_logs) > 0: 
+        print(remote_logs[0, min(len)])
+        
+        for file in remote_logs:
+            try:
+                sftp_client.get(file, local_log_dir)
+            except OSError as e:
+                print(f"Error pulling {file}: {e}")
 
 
 
