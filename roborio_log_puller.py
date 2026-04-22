@@ -89,15 +89,15 @@ def sftp_path_exists(sftp_client: paramiko.SFTPClient, path: str) -> bool:
     else:
         return True # (should) return true for any filetype
 
-def sftp_find_log_dir(sftp_client: paramiko.SFTPClient) -> set[str]:
-    valid_dirs: set[str] = set()
+def sftp_find_log_dir(sftp_client: paramiko.SFTPClient) -> list[str]:
+    valid_dirs: list[str] = list()
 
     if sftp_path_exists(sftp_client=sftp_client, path=remote_default_log_dir):
-        valid_dirs.add(remote_default_log_dir)
+        valid_dirs.append(remote_default_log_dir)
 
     for path in remote_default_usb_log_dirs:
         if sftp_path_exists(sftp_client=sftp_client, path=path):
-            valid_dirs.add(path)
+            valid_dirs.append(path)
 
     return valid_dirs
 
@@ -119,10 +119,7 @@ def sftp_grab_latest_logs(sftp_client: paramiko.SFTPClient, dirs: list[str]) -> 
     for dir in dirs:
         logs.extend(sftp_listdir(sftp_client=sftp_client, dir=dir))
 
-    logs = list(set(logs))
-    logs.sort()
-    
-    return logs
+    return sorted(list(set(logs)))
 
 
 if __name__ == "__main__":
@@ -140,9 +137,10 @@ if __name__ == "__main__":
     ssh_client = ssh_connect(address=addr, username=ssh_user, password="")
     sftp_client = sftp_connect(ssh_client=ssh_client)
 
-    remote_log_dirs: set[str] = sftp_find_log_dir(sftp_client=sftp_client)
-    print(remote_log_dirs)
+    remote_log_dirs: list[str] = sftp_find_log_dir(sftp_client=sftp_client)
+    remote_logs: list[str] = sftp_grab_latest_logs(sftp_client=sftp_client, dirs=remote_log_dirs)
     
+
 
     # Disconnect
     sftp_client.close()
