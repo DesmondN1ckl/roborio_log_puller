@@ -32,7 +32,10 @@ def fetch_arguments() -> argparse.Namespace:
     return parser.parse_args()
 
 def check_logs_dir(path: str = local_default_log_dir) -> None:
-    os.makedirs(path, exist_ok=True)
+    try:
+        os.makedirs(path, exist_ok=True)
+    except OSError as e:
+        print(f"Error creating/checking for logs dir: {e}")
 
 def resolve_roborio() -> str:
     try:
