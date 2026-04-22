@@ -101,15 +101,23 @@ def sftp_find_log_dir(sftp_client: paramiko.SFTPClient) -> set[str]:
 
     return valid_dirs
 
+def sftp_listdir(sftp_client: paramiko.SFTPClient, dir: str, ignore_errors: bool = True) -> list[str]:
+    files: list[str] = list()
+
+    try:
+        files = sftp_client.listdir(dir)
+    except OSError:
+        if not ignore_errors:
+            raise
+
+    return files
+
+
 def sftp_grab_latest_logs(sftp_client: paramiko.SFTPClient, dirs: list[str]) -> list[str]:
     logs: list[str] = list()
     
     for dir in dirs:
-        try:
-            files = sftp_client.listdir(dir)
-            logs.extend(files)
-        except OSError:
-            pass
+        logs.extend(sftp_listdir(sftp_client=sftp_client, dir=dir))
 
     logs = list(set(logs))
     logs.sort()
@@ -129,11 +137,12 @@ if __name__ == "__main__":
     addr = resolve_roborio()
 
     # Connect over ssh then open sftp
-    ssh_client = ssh_connect(address=addr, username=ssh_user, password="")
+    ssh_client = ssh_connect(address="127.0.0.1", username="lvuser", password="secur3passwd")
+    #ssh_client = ssh_connect(address=addr, username=ssh_user, password="")
     sftp_client = sftp_connect(ssh_client=ssh_client)
 
     remote_log_dirs: set[str] = sftp_find_log_dir(sftp_client=sftp_client)
-
+    print(remote_log_dirs)
     
 
     # Disconnect
