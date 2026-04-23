@@ -204,7 +204,7 @@ if __name__ == "__main__":
         local_log_dir: pathlib.Path = args.log_dir.resolve()
 
     check_local_logs_dir(local_log_dir)
-    addr = resolve_roborio()
+    addr = resolve_roborio(use_mdns=not skip_mdns)
 
     # Connect over ssh then open sftp
     ssh_client = ssh_connect(address=addr, username=ssh_user, password="")
