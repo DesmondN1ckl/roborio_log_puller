@@ -29,13 +29,38 @@ remote_default_usb_log_dirs: tuple[pathlib.PurePosixPath, pathlib.PurePosixPath]
 
 
 def fetch_arguments() -> argparse.Namespace:
-    parser.add_argument("-d", "--daemon", help="Enable daemon mode", action='store_true')
-    parser.add_argument("-a", "--admin", help="Use admin account instead of lvuser during ssh", action='store_true')
+    parser.add_argument(
+        "-d", "--daemon",
+        help="Enable daemon mode",
+        action='store_true'
+    )
+    parser.add_argument(
+        "-a", "--admin",
+        help="Use admin account instead of lvuser during ssh",
+        action='store_true'
+    )
     parser.add_argument(
         "-l", "--log-dir",
         help="Use specified log directory to check for and store downloaded logs",
         type=pathlib.Path,
-        default=None)
+        default=None
+    )
+    parser.add_argument(
+        "-r", "--redownload",
+        help="Re-download logs even if they were previously downloaded",
+        action="store_true",
+    )
+    parser.add_argument(
+        "-n", "--latest",
+        help="Only download the newest N logs",
+        type=int,
+        default=3,
+    )
+    parser.add_argument(
+        "--list",
+        help="List logs without downloading",
+        action="store_true",
+    )
 
     return parser.parse_args()
 
@@ -122,7 +147,7 @@ def sftp_listdir(sftp_client: paramiko.SFTPClient, dir: pathlib.PurePosixPath, i
     return files
 
 
-def sftp_grab_latest_logs(sftp_client: paramiko.SFTPClient, dirs: list[pathlib.PurePosixPath]) -> list[pathlib.PurePosixPath]:
+def sftp_find_latest_logs(sftp_client: paramiko.SFTPClient, dirs: list[pathlib.PurePosixPath]) -> list[pathlib.PurePosixPath]:
     logs: list[pathlib.PurePosixPath] = list()
     
     for dir in dirs:
@@ -134,11 +159,13 @@ def sftp_grab_latest_logs(sftp_client: paramiko.SFTPClient, dirs: list[pathlib.P
 
     return sorted(logs, key=lambda x: x.name ,reverse=True) # FRC logs are lexigraphically sortable (I'm pretty sure)
 
-def sftp_pull_logs(sftp_client: paramiko.SFTPClient, logs: list[pathlib.PurePosixPath], local_log_dir: pathlib.Path) -> None:
+def sftp_pull_logs(sftp_client: paramiko.SFTPClient, logs: list[pathlib.PurePosixPath], local_log_dir: pathlib.Path, latest: int, redownload: bool = False) -> None:
+    logs = logs[:latest]
+
     for file in logs:
         local_path: pathlib.Path = local_log_dir / file.name
 
-        if local_path.exists():
+        if local_path.exists() and not redownload:
             print_err(f"Log found, skipping {file}")
         else:    
             try:
@@ -153,8 +180,14 @@ if __name__ == "__main__":
     # Set up vars
     args = fetch_arguments()
 
-    daemon_mode = args.daemon
-    ssh_user = ssh_admin_user if args.admin else ssh_default_user
+    daemon_mode: bool = args.daemon
+    ssh_user: str = ssh_admin_user if args.admin else ssh_default_user
+    redownload: bool = args.redownload
+    only_list: bool = args.list
+    latest_n: int = args.latest 
+
+    if latest_n <= 0:
+        parser.error("--latest must be greater than 0")
 
     if args.log_dir is None:
         local_log_dir: pathlib.Path = local_default_log_dir
@@ -170,12 +203,15 @@ if __name__ == "__main__":
 
     # Find log files
     remote_log_dirs: list[pathlib.PurePosixPath] = sftp_find_log_dirs(sftp_client=sftp_client)
-    print(remote_log_dirs) # Debug
 
-    remote_logs: list[pathlib.PurePosixPath] = sftp_grab_latest_logs(sftp_client=sftp_client, dirs=remote_log_dirs)
-    print(remote_logs) # Debug
+    remote_logs: list[pathlib.PurePosixPath] = sftp_find_latest_logs(sftp_client=sftp_client, dirs=remote_log_dirs)
 
-    sftp_pull_logs(sftp_client=sftp_client, logs=remote_logs, local_log_dir=local_log_dir)
+    # Pull log files
+    if only_list:
+        for file in remote_logs[:latest_n]:
+            print(file)
+    else:
+        sftp_pull_logs(sftp_client=sftp_client, logs=remote_logs, local_log_dir=local_log_dir, latest=latest_n, redownload=redownload)
 
 
     # Disconnect
