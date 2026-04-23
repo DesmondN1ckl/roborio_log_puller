@@ -103,7 +103,7 @@ def ssh_connect(address: str, username: str, password: str) -> paramiko.SSHClien
     return ssh_client
 
 def ssh_exec(ssh_client: paramiko.SSHClient, cmd: str, use_sudo: bool = False) -> tuple[str, str, int]:
-    if use_sudo and ssh_user == ssh_admin_user:
+    if use_sudo:
         cmd = "sudo -n " + cmd
 
     _, ssh_stdout, ssh_stderr = ssh_start_cmd(ssh_client=ssh_client, cmd=cmd)
