@@ -21,8 +21,8 @@ team_number: int = 112
 fallback_roborio_ip: str = "10.1.12.2"
 roborio_hostname: str = f"roboRIO-{team_number}-frc.local"
 
-local_default_log_dir: pathlib.Path = pathlib.Path(__file__) / "match_logs"
 script_dir: pathlib.Path = pathlib.Path(__file__).parent
+local_default_log_dir: pathlib.Path = script_dir / "match_logs"
 remote_default_log_dir: pathlib.PurePosixPath = pathlib.PurePosixPath("/home/lvuser/logs")
 remote_default_usb_log_dirs: tuple[pathlib.PurePosixPath, pathlib.PurePosixPath] = (pathlib.PurePosixPath("/run/media/lvuser/logs"), pathlib.PurePosixPath("/u/logs"))
 
