@@ -134,6 +134,13 @@ def sftp_grab_latest_logs(sftp_client: paramiko.SFTPClient, dirs: list[pathlib.P
 
     return sorted(logs, reverse=True) # FRC logs are lexigraphically sortable (I'm pretty sure)
 
+def sftp_pull_logs(sftp_client: paramiko.SFTPClient, logs: list[pathlib.PurePosixPath]) -> None:
+    for file in remote_logs:
+        try:
+            sftp_client.get(str(file), str(local_log_dir / file.name) )
+        except OSError as e:
+            print(f"Error pulling {file}: {e}")
+
 
 if __name__ == "__main__":
     # Set up vars
@@ -157,15 +164,7 @@ if __name__ == "__main__":
     remote_logs: list[pathlib.PurePosixPath] = sftp_grab_latest_logs(sftp_client=sftp_client, dirs=remote_log_dirs)
     print(remote_logs) # Debug
 
-
-    if len(remote_logs) > 0: 
-        
-        for file in remote_logs:
-            try:
-                sftp_client.get(str(file), local_log_dir)
-            except OSError as e:
-                print(f"Error pulling {file}: {e}")
-
+    sftp_pull_logs(sftp_client=sftp_client, logs=remote_logs)
 
 
     # Disconnect
