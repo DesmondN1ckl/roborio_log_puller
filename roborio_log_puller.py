@@ -30,7 +30,12 @@ remote_default_usb_log_dirs: tuple[pathlib.PurePosixPath, pathlib.PurePosixPath]
 def fetch_arguments() -> argparse.Namespace:
     parser.add_argument("-d", "--daemon", help="Enable daemon mode", action='store_true')
     parser.add_argument("-a", "--admin", help="Use admin account instead of lvuser during ssh", action='store_true')
-    parser.add_argument("-l", "--log-dir", help="Use specified log directory to check for and store downloaded logs", type=str, default=local_default_log_dir)
+    parser.add_argument(
+        "-l", "--log-dir",
+        help="Use specified log directory to check for and store downloaded logs",
+        type=pathlib.Path,
+        default=local_default_log_dir)
+
     return parser.parse_args()
 
 def check_local_logs_dir(path: pathlib.Path = local_default_log_dir) -> None:
