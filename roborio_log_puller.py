@@ -1,10 +1,11 @@
 import argparse
 import errno
 import os
+import pathlib
 
 # import stat
 import socket
-import pathlib
+import sys
 
 import paramiko
 
@@ -42,7 +43,7 @@ def check_local_logs_dir(path: pathlib.Path = local_default_log_dir) -> None:
     try:
         os.makedirs(path, exist_ok=True)
     except OSError as e:
-        print(f"Error creating/checking for logs dir: {e}")
+        print_err(f"Error creating/checking for logs dir: {e}")
 
 def resolve_roborio() -> str:
     try:
@@ -51,7 +52,6 @@ def resolve_roborio() -> str:
         response = fallback_roborio_ip
 
     return response
-
 
 def ssh_connect(address: str, username: str, password: str) -> paramiko.SSHClient:
     ssh_client: paramiko.SSHClient = paramiko.SSHClient()
@@ -136,11 +136,18 @@ def sftp_grab_latest_logs(sftp_client: paramiko.SFTPClient, dirs: list[pathlib.P
 
 def sftp_pull_logs(sftp_client: paramiko.SFTPClient, logs: list[pathlib.PurePosixPath], local_log_dir: pathlib.Path) -> None:
     for file in logs:
-        try:
-            sftp_client.get(str(file), str(local_log_dir / file.name) )
-        except OSError as e:
-            print(f"Error pulling {file}: {e}")
+        local_path: pathlib.Path = local_log_dir / file.name
 
+        if local_path.exists():
+            print_err(f"Log found, skipping {file}")
+        else:    
+            try:
+                sftp_client.get(str(file), str(local_path) )
+            except OSError as e:
+                print_err(f"Error pulling {file}: {e}")
+
+def print_err(*args, **kwargs) -> None:
+    print(*args, file=sys.stderr, **kwargs)
 
 if __name__ == "__main__":
     # Set up vars
