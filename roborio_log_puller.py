@@ -21,10 +21,10 @@ team_number: int = 112
 fallback_roborio_ip: str = "10.1.12.2"
 roborio_hostname: str = f"roboRIO-{team_number}-frc.local"
 
-script_dir = pathlib.PurePosixPath(__file__).parent
-local_default_log_dir = "match_logs"
-remote_default_log_dir: str = "/home/lvuser/logs" 
-remote_default_usb_log_dirs: tuple[str, str] = ("/run/media/lvuser/logs", "/u/logs")
+local_default_log_dir: pathlib.Path = pathlib.Path(__file__) / "match_logs"
+script_dir: pathlib.Path = pathlib.Path(__file__).parent
+remote_default_log_dir: pathlib.PurePosixPath = pathlib.PurePosixPath("/home/lvuser/logs")
+remote_default_usb_log_dirs: tuple[pathlib.PurePosixPath, pathlib.PurePosixPath] = (pathlib.PurePosixPath("/run/media/lvuser/logs"), pathlib.PurePosixPath("/u/logs"))
 
 
 def fetch_arguments() -> argparse.Namespace:
@@ -33,7 +33,7 @@ def fetch_arguments() -> argparse.Namespace:
     parser.add_argument("-l", "--log-dir", help="Use specified log directory to check for and store downloaded logs", type=str, default=local_default_log_dir)
     return parser.parse_args()
 
-def check_logs_dir(path: str = local_default_log_dir) -> None:
+def check_local_logs_dir(path: pathlib.Path = local_default_log_dir) -> None:
     try:
         os.makedirs(path, exist_ok=True)
     except OSError as e:
@@ -81,9 +81,9 @@ def ssh_start_cmd(ssh_client: paramiko.SSHClient, cmd: str) -> tuple[paramiko.Ch
 def sftp_connect(ssh_client: paramiko.SSHClient) -> paramiko.SFTPClient:
     return ssh_client.open_sftp()
 
-def sftp_path_exists(sftp_client: paramiko.SFTPClient, path: str) -> bool:
+def sftp_path_exists(sftp_client: paramiko.SFTPClient, path: pathlib.PurePosixPath) -> bool:
     try:
-        sftp_client.stat(path=path) # doesn't use return, parses errors instead
+        sftp_client.stat(path=str(path)) # doesn't use return, parses errors instead
     except OSError as e:
         if e.errno in (errno.ENOENT, errno.ENOTDIR):
             return False
@@ -91,8 +91,8 @@ def sftp_path_exists(sftp_client: paramiko.SFTPClient, path: str) -> bool:
     else:
         return True # (should) return true for any filetype
 
-def sftp_find_log_dir(sftp_client: paramiko.SFTPClient) -> list[str]:
-    valid_dirs: list[str] = list()
+def sftp_find_log_dirs(sftp_client: paramiko.SFTPClient) -> list[pathlib.PurePosixPath]:
+    valid_dirs: list[pathlib.PurePosixPath] = list()
 
     if sftp_path_exists(sftp_client=sftp_client, path=remote_default_log_dir):
         valid_dirs.append(remote_default_log_dir)
@@ -103,11 +103,11 @@ def sftp_find_log_dir(sftp_client: paramiko.SFTPClient) -> list[str]:
 
     return valid_dirs
 
-def sftp_listdir(sftp_client: paramiko.SFTPClient, dir: str, ignore_errors: bool = True) -> list[str]:
-    files: list[str] = list()
+def sftp_listdir(sftp_client: paramiko.SFTPClient, dir: pathlib.PurePosixPath, ignore_errors: bool = True) -> list[pathlib.PurePosixPath]:
+    files: list[pathlib.PurePosixPath] = list()
 
     try:
-        files = sftp_client.listdir(dir)
+        files = sftp_client.listdir(str(dir))
     except OSError:
         if not ignore_errors:
             raise
@@ -115,13 +115,10 @@ def sftp_listdir(sftp_client: paramiko.SFTPClient, dir: str, ignore_errors: bool
     return files
 
 
-def sftp_grab_latest_logs(sftp_client: paramiko.SFTPClient, dirs: list[str]) -> list[str]:
+def sftp_grab_latest_logs(sftp_client: paramiko.SFTPClient, dirs: list[pathlib.PurePosixPath]) -> list[pathlib.PurePosixPath]:
     logs: list[str] = list()
     
     for dir in dirs:
-
-        if len(dir) > 1:
-            dir = str(dir.rsplit("/"))
 
         files: list[str] = sftp_listdir(sftp_client=sftp_client, dir=dir)
         for file in files:
@@ -137,9 +134,9 @@ if __name__ == "__main__":
 
     daemon_mode = args.daemon
     ssh_user = ssh_admin_user if args.admin else ssh_default_user
-    local_log_dir: pathlib.PurePosixPath = script_dir / args.log_dir
+    local_log_dir: pathlib.Path = script_dir / args.log_dir
 
-    check_logs_dir(local_log_dir)
+    check_local_logs_dir(local_log_dir)
     addr = resolve_roborio()
 
     # Connect over ssh then open sftp
@@ -147,10 +144,10 @@ if __name__ == "__main__":
     sftp_client = sftp_connect(ssh_client=ssh_client)
 
     # Find log files
-    remote_log_dirs: list[str] = sftp_find_log_dir(sftp_client=sftp_client)
+    remote_log_dirs: list[pathlib.PurePosixPath] = sftp_find_log_dirs(sftp_client=sftp_client)
     print(remote_log_dirs) # Debug
 
-    remote_logs: list[str] = sftp_grab_latest_logs(sftp_client=sftp_client, dirs=remote_log_dirs)
+    remote_logs: list[pathlib.PurePosixPath] = sftp_grab_latest_logs(sftp_client=sftp_client, dirs=remote_log_dirs)
     print(remote_logs) # Debug
 
 
