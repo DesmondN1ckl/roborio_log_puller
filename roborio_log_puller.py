@@ -62,7 +62,7 @@ def fetch_arguments() -> argparse.Namespace:
         action="store_true",
     )
     parser.add_argument(
-        "-n", "--no-mdns",
+        "-m", "--no-mdns",
         help="Disables use of mdns, can speed up connections",
         action="store_true",
     )
