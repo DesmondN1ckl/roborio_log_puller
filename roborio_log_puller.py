@@ -61,6 +61,11 @@ def fetch_arguments() -> argparse.Namespace:
         help="List logs without downloading",
         action="store_true",
     )
+    parser.add_argument(
+        "-n", "--no-mdns",
+        help="Disables use of mdns, can speed up connections",
+        action="store_true",
+    )
 
     return parser.parse_args()
 
@@ -70,10 +75,13 @@ def check_local_logs_dir(path: pathlib.Path = local_default_log_dir) -> None:
     except OSError as e:
         print_err(f"Error creating/checking for logs dir: {e}")
 
-def resolve_roborio() -> str:
-    try:
-        response = socket.gethostbyname(roborio_hostname)
-    except socket.gaierror:
+def resolve_roborio(use_mdns: bool = True) -> str:
+    if use_mdns:
+        try:
+            response = socket.gethostbyname(roborio_hostname)
+        except socket.gaierror:
+            response = fallback_roborio_ip
+    else:
         response = fallback_roborio_ip
 
     return response
@@ -184,7 +192,8 @@ if __name__ == "__main__":
     ssh_user: str = ssh_admin_user if args.admin else ssh_default_user
     redownload: bool = args.redownload
     only_list: bool = args.list
-    latest_n: int = args.latest 
+    latest_n: int = args.latest
+    skip_mdns: bool = args.no_mdns
 
     if latest_n <= 0:
         parser.error("--latest must be greater than 0")
