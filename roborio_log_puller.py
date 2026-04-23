@@ -107,7 +107,9 @@ def sftp_listdir(sftp_client: paramiko.SFTPClient, dir: pathlib.PurePosixPath, i
     files: list[pathlib.PurePosixPath] = list()
 
     try:
-        files = sftp_client.listdir(str(dir))
+        _ = (sftp_client.listdir(str(dir)))
+        for file in _:
+            files.append(pathlib.PurePosixPath(file))
     except OSError:
         if not ignore_errors:
             raise
@@ -116,14 +118,14 @@ def sftp_listdir(sftp_client: paramiko.SFTPClient, dir: pathlib.PurePosixPath, i
 
 
 def sftp_grab_latest_logs(sftp_client: paramiko.SFTPClient, dirs: list[pathlib.PurePosixPath]) -> list[pathlib.PurePosixPath]:
-    logs: list[str] = list()
+    logs: list[pathlib.PurePosixPath] = list()
     
     for dir in dirs:
 
-        files: list[str] = sftp_listdir(sftp_client=sftp_client, dir=dir)
+        files: list[pathlib.PurePosixPath] = sftp_listdir(sftp_client=sftp_client, dir=dir)
         for file in files:
-            if file.endswith(".wpilog"):
-                logs.append(dir + "/" + file)
+            if str(file).endswith(".wpilog"):
+                logs.append(file)
 
     return sorted(logs, reverse=True) # FRC logs are lexigraphically sortable (I'm pretty sure)
 
@@ -152,11 +154,10 @@ if __name__ == "__main__":
 
 
     if len(remote_logs) > 0: 
-        print(remote_logs[0, min(len)])
         
         for file in remote_logs:
             try:
-                sftp_client.get(file, local_log_dir)
+                sftp_client.get(str(file), local_log_dir)
             except OSError as e:
                 print(f"Error pulling {file}: {e}")
 
