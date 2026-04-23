@@ -132,7 +132,7 @@ def sftp_grab_latest_logs(sftp_client: paramiko.SFTPClient, dirs: list[pathlib.P
             if str(file).endswith(".wpilog"):
                 logs.append(dir / file)
 
-    return sorted(logs, reverse=True) # FRC logs are lexigraphically sortable (I'm pretty sure)
+    return sorted(logs, key=lambda x: x.name ,reverse=True) # FRC logs are lexigraphically sortable (I'm pretty sure)
 
 def sftp_pull_logs(sftp_client: paramiko.SFTPClient, logs: list[pathlib.PurePosixPath], local_log_dir: pathlib.Path) -> None:
     for file in logs:
