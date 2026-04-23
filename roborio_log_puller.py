@@ -21,7 +21,7 @@ team_number: int = 112
 fallback_roborio_ip: str = "10.1.12.2"
 roborio_hostname: str = f"roboRIO-{team_number}-frc.local"
 
-script_dir: pathlib.Path = pathlib.Path(__file__).parent
+script_dir: pathlib.Path = pathlib.Path(__file__).resolve().parent
 local_default_log_dir: pathlib.Path = script_dir / "match_logs"
 remote_default_log_dir: pathlib.PurePosixPath = pathlib.PurePosixPath("/home/lvuser/logs")
 remote_default_usb_log_dirs: tuple[pathlib.PurePosixPath, pathlib.PurePosixPath] = (pathlib.PurePosixPath("/run/media/lvuser/logs"), pathlib.PurePosixPath("/u/logs"))
@@ -34,7 +34,7 @@ def fetch_arguments() -> argparse.Namespace:
         "-l", "--log-dir",
         help="Use specified log directory to check for and store downloaded logs",
         type=pathlib.Path,
-        default=local_default_log_dir)
+        default=None)
 
     return parser.parse_args()
 
@@ -134,8 +134,8 @@ def sftp_grab_latest_logs(sftp_client: paramiko.SFTPClient, dirs: list[pathlib.P
 
     return sorted(logs, reverse=True) # FRC logs are lexigraphically sortable (I'm pretty sure)
 
-def sftp_pull_logs(sftp_client: paramiko.SFTPClient, logs: list[pathlib.PurePosixPath]) -> None:
-    for file in remote_logs:
+def sftp_pull_logs(sftp_client: paramiko.SFTPClient, logs: list[pathlib.PurePosixPath], local_log_dir: pathlib.Path) -> None:
+    for file in logs:
         try:
             sftp_client.get(str(file), str(local_log_dir / file.name) )
         except OSError as e:
@@ -148,7 +148,11 @@ if __name__ == "__main__":
 
     daemon_mode = args.daemon
     ssh_user = ssh_admin_user if args.admin else ssh_default_user
-    local_log_dir: pathlib.Path = script_dir / args.log_dir
+
+    if args.log_dir is None:
+        local_log_dir: pathlib.Path = local_default_log_dir
+    else:
+        local_log_dir: pathlib.Path = args.log_dir.resolve()
 
     check_local_logs_dir(local_log_dir)
     addr = resolve_roborio()
@@ -164,7 +168,7 @@ if __name__ == "__main__":
     remote_logs: list[pathlib.PurePosixPath] = sftp_grab_latest_logs(sftp_client=sftp_client, dirs=remote_log_dirs)
     print(remote_logs) # Debug
 
-    sftp_pull_logs(sftp_client=sftp_client, logs=remote_logs)
+    sftp_pull_logs(sftp_client=sftp_client, logs=remote_logs, local_log_dir=local_log_dir)
 
 
     # Disconnect
