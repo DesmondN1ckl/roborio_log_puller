@@ -14,7 +14,7 @@ SSH_DEFAULT_USER: str = "lvuser"
 SSH_ADMIN_USER: str = "admin"
 
 TEAM_NUMBER: int = 112
-FALLBACK_ROBORIO_IP: str = "10.1.12.2"
+FALLBACK_ROBORIO_IP: str = f"10.{TEAM_NUMBER % 100}.{TEAM_NUMBER // 100}.2"
 ROBORIO_HOSTNAME: str = f"roboRIO-{TEAM_NUMBER}-frc.local"
 
 SCRIPT_DIR: pathlib.Path = pathlib.Path(__file__).resolve().parent
