@@ -201,10 +201,23 @@ def main() -> None:
     only_list: bool = args.list
     latest_n: int = args.latest
     skip_mdns: bool = args.no_mdns
-    
     local_log_dir: pathlib.Path = args.log_dir.resolve()
 
     check_local_logs_dir(local_log_dir)
+    
+    if daemon_mode:
+        while True:
+            try:
+                addr = resolve_roborio(use_mdns=not skip_mdns)
+
+                ssh_client = ssh_connect(address=addr, username=ssh_user, password="")
+                sftp_client = sftp_connect(ssh_client=ssh_client)
+            except:
+                continue
+            else:
+                break
+
+
     addr = resolve_roborio(use_mdns=not skip_mdns)
 
     # Connect over ssh then open sftp
