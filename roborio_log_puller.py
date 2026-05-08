@@ -30,6 +30,7 @@ def fetch_arguments() -> argparse.Namespace:
                     description='Helps to automate pulling logs and parsing them',
                     epilog='Bottom text')
 
+    # TODO: Actually add daemon mode
     parser.add_argument(
         "-d", "--daemon",
         help="Enable daemon mode",
